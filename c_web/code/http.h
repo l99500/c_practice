@@ -1,9 +1,9 @@
 // http模块头文件
-# ifndef _HTTP_H_
-# define _HTTP_H_
+#ifndef _HTTP_H_
+#define _HTTP_H_
 
-# include <limits.h>
-# include <sys/types.h>
+#include <limits.h>
+#include <sys/types.h>
 
 // 用来表示解析得到的数据
 typedef struct httpRequest{
@@ -14,13 +14,13 @@ typedef struct httpRequest{
 } HTTP_REQUEST;
 
 // http 请求的解析
-int parseRequest(const chat* req, HTTP_REQUEST* hreq);
+int parseRequest(const char* req, HTTP_REQUEST* hreq);
 
 // 构造响应头时需要的数据
 typedef struct httpRespond{
     char protocol[32];  // 协议版本
     int status;  // 状态码
-    char dest[128]; // 状态描述
+    char desc[128]; // 状态描述
     char type[64];  //  类型
     off_t length;  // 长度
     char connection[32];  // 连接状态

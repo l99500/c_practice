@@ -4,10 +4,10 @@
 #define __USE_GNU // 定义之后 string.h 可以使用 strcasestr 字母大小写不敏感
 #include <string.h>
 #include <time.h>
-#include http.h
+#include "http.h"
 
 // http 请求的解析
-int parseRequest(const chat* req, HTTP_REQUEST* hreq){
+int parseRequest(const char* req, HTTP_REQUEST* hreq){
     sscanf(req, "%s%s%s", hreq->method, hreq->path, hreq->protocol);
     char* connection = strcasestr(req, "connection");
     if (connection){
@@ -38,6 +38,16 @@ int parseRequest(const chat* req, HTTP_REQUEST* hreq){
 int constructHead(const HTTP_RESPOND* hres, char* head){
     char dateTime[32];
     time_t now = time(NULL);
-
+    strftime(dateTime, sizeof(dateTime), 
+            "%a %d %b %Y %T", gmtime(&now));
+    sprintf(head, "%s %d %s\r\n"
+                "Server: TestServer1.0\r\n"
+                "Date: %s\r\n"
+                "Content-Type: %s\r\n"
+                "Content-Length: %ld\r\n"
+                "Connection: %s\r\n\r\n",
+                hres->protocol, hres->status,
+                hres->desc, dateTime, hres->type,
+                hres->length, hres->connection);
     return 0;
 }
