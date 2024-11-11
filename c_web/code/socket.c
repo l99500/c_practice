@@ -47,3 +47,47 @@ int initSocket(short port){
 
     return 0;
 }
+
+// 接受客户端的连接请求
+int acceptClient(void){
+    printf("%d.%ld > 等待客户端的连接\n", getpid(), syscall(SYS_gettid));
+    struct sockaddr_in cli; // 用来输出客户端的地址结构
+    socklen_t len = sizeof(cli); // 用来输出地址结构大小
+    int conn = accept(s_sock, (struct sockaddr*)&cli, &len);
+    if(conn == -1){
+        perror("accept");
+        return -1;
+    }
+    printf("%d.%ld > 接收到客户端%s:%hu的连接\n", getpid(), syscall(SYS_gettid),
+            inet_ntoa(cli.sin_addr), ntohs(cli.sin_port));
+    return conn;
+}
+
+// 接受http请求
+char* recvRequest(int conn){
+    char* req = NULL;  // 记录动态分配的存储区首地址
+    ssize_t len = 0;  // 记录已经接受的总字节数
+    for(;;){
+        chat buf[1024] = {};
+        ssize_t size = recv(conn, buf, sizeof(buf)-1, 0);
+        if(size == -1){
+            perror("recv");
+            free(req);
+            return NULL;
+        }
+        if(size==0){
+            printf("%d.%ld > 客户端关闭连接\n", getpid(), syscall(SYS_gettid));
+            free(req);
+            return NULL;
+        }
+
+        req = realloc(req, len + size + 1);  // 扩大存储区
+        memcpy(req + len, buf, size + 1); // 拷贝此次接受数据到存储区
+        len = len + size;  // 总长度累加
+
+        // 如果请求中有两个\r\n, 代表接受完成
+        if(strstr(req, "\r\n\r\n")){
+            break;
+        }
+    }
+}
