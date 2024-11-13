@@ -68,7 +68,7 @@ char* recvRequest(int conn){
     char* req = NULL;  // 记录动态分配的存储区首地址
     ssize_t len = 0;  // 记录已经接受的总字节数
     for(;;){
-        chat buf[1024] = {};
+        char buf[1024] = {};
         ssize_t size = recv(conn, buf, sizeof(buf)-1, 0);
         if(size == -1){
             perror("recv");
@@ -90,4 +90,46 @@ char* recvRequest(int conn){
             break;
         }
     }
+}
+
+
+// 发送 http 响应头
+int sendHead(int conn, const char* head){
+    if(send(conn, head, strlen(head), 0) == -1){
+        perror("send");
+        return -1;
+    }
+    return 0;
+}
+
+// 发送http响应体
+int sendBody(int conn, const char* path){
+    // 打开文件
+    int fd = open(path, O_RDONLY);
+    if(fd == -1){
+        perror("open");
+        return -1;
+    }
+    // 循环读取并发送
+    char buf[1024];
+    ssize_t len;
+    // 循环结束，len-->0, 正常读完文件， len-->1,读取出错
+    while((len = read(fd, buf, sizeof(buf))) > 0){
+        // 接多少，发多少
+        if(send(conn, buf, len, 0) == -1){
+            perror("send");
+            return -1;
+        }
+    }
+    if(len == -1){
+        perror("read");
+        return -1;
+    }
+    close(fd);
+    return 0;
+}
+
+// 终结套接字
+void deinitSocket(void){
+    close(s_sock);
 }
