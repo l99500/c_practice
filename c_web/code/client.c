@@ -39,8 +39,8 @@ void* client(void* arg){
         char root[PATH_MAX + 1];  // 存储路径
         char path[PATH_MAX + 1]; // 真实路径
         // 去除路径中最后的/
-        if(root[strlen(root) - 1] == "/"){
-            root[strlen(root) - 1] = "\0";
+        if(root[strlen(root) - 1] == '/'){
+            root[strlen(root) - 1] = '\0';
         }
         //拼接文件的真实路径
         strcpy(path, root);
@@ -51,6 +51,65 @@ void* client(void* arg){
             // /home/tarena/2208/project/home/index.html
             strcat(path, "index.html");
         }
+
+        // 构造响应时所属的结构体
+        HTTP_RESPOND hres = {"HTTP/1.1", 200, "OK", "text/html"};
+        // 获取资源
+        if(searchResource(path) == -1){
+            hres.status = 404;
+            strcpy(hres.desc, "NOT FOUND");
+            // /home/tarena/2208/project/home/404.html
+            strcpy(path, root);
+            strcat(path, "/404.html");
+        }else if(identifyType(path, hres.type) == -1){
+            hres.status = 404;
+            // /home/tarena/2208/project/home/404.html
+            strcpy(path, root);
+            strcat(path, "/404.html");
+        }
+
+        // 确定文本长度
+        struct stat st;  // 用来输出文本的元数据
+        if(stat(path, &st) == -1){
+            perror("stat");
+            break;
+        }
+        hres.length = st.st_size;
+
+        // 连接状态
+        if(strlen(hreq.connection)){
+            strcpy(hres.connection, hreq.connection);
+        }else if(strcasecmp(hreq.protocol, "http/1.0") == 0){
+            strcpy(hres.connection, "Close");
+        }else{
+            strcpy(hres.connection, "Keep-alive");
+        }
+
+        // 构造响应
+        printf("%d.%ld > 构造响应：\n", getpid(), syscall(SYS_gettid));
+        char head[1024];
+        if(constructHead(&hres, head) == -1){
+            break;
+        }
+        printf("%d.%ld > 响应电文：\n%s\n", getpid(), syscall(SYS_gettid),head);
+
+        // 发送响应头
+        if(sendHead(ca->conn, head) == -1){
+            break;
+        } 
+
+        // 发送响应体
+        if(sendBody(ca->conn, path) == -1){
+            break;
+        }
+
+        // 如果连接状态是close则退循环
+        if(strcasecmp(hres.connection, "close") == -1){
+            break;
+        }
     }
+    close(ca->conn);
+    free(ca);
+    printf("%d.%ld > 客户机线程处理结束\n", getpid(), syscall(SYS_gettid));
     return NULL;
 }

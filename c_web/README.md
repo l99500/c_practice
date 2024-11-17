@@ -27,3 +27,6 @@
 - 线程模块： `client.h` `client.c` 
 - 服务器模块： `server.h` `server.c` 
 - 主模块： `main.c` 
+
+## 运行
+编译：`gcc -fPIE main.c *.o -o webserver -pthread`
